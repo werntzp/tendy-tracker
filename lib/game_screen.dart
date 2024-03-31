@@ -10,7 +10,7 @@ import "shared.dart";
 import "package:intl/intl.dart";
 
 class GameScreen extends StatefulWidget {
-  GameScreen({Key key}) : super(key: key);
+  GameScreen({Key? key}) : super(key: key);
 
   @override
   _GameScreenState createState() => _GameScreenState();
@@ -30,9 +30,10 @@ class _GameScreenState extends State<GameScreen> {
   String _awayTeamName = "Team 2";
   String _displayPeriod = "1";
   String _path = "";
-  Directory _directory;
-  File _homeLogoFile;
-  File _awayLogoFile;
+  Directory _directory = new Directory('/');
+  File _defaultLogoFile = new File(DEFAULT_LOGO);
+  File? _homeLogoFile = new File(DEFAULT_LOGO);
+  File? _awayLogoFile = new File(DEFAULT_LOGO);
   List<Goal> _goals = <Goal>[];
   bool _isSwitched = false;
   DateTime _gameDate = DateTime.now();
@@ -106,40 +107,32 @@ class _GameScreenState extends State<GameScreen> {
     return File("$_path/$AWAY_TEAM_LOGO");
   }
 
+  File determineLogoFileToUse(enumTeamType team) {
+    if (team == enumTeamType.home) {
+      return _homeLogoFile ?? _defaultLogoFile;
+    } else {
+      return _awayLogoFile ?? _defaultLogoFile;
+    }
+  }
+
   // if no custom logo, use default one for home team
   Widget _homeTeamLogo() {
-    if (_homeLogoFile == null) {
-      return Image.asset(
-        "$DEFAULT_LOGO",
-        width: 100,
-        height: 100,
-      );
-    } else {
-      imageCache.clear();
-      return Image.file(
-        _homeLogoFile,
-        width: 100,
-        height: 100,
-      );
-    }
+    imageCache.clear();
+    return Image.file(
+      determineLogoFileToUse(enumTeamType.home),
+      width: 100,
+      height: 100,
+    );
   }
 
   // if no custom logo, use default one for away team
   Widget _awayTeamLogo() {
-    if (_awayLogoFile == null) {
-      return Image.asset(
-        "$DEFAULT_LOGO",
-        width: 100,
-        height: 100,
-      );
-    } else {
-      imageCache.clear();
-      return Image.file(
-        _awayLogoFile,
-        width: 100,
-        height: 100,
-      );
-    }
+    imageCache.clear();
+    return Image.file(
+      determineLogoFileToUse(enumTeamType.away),
+      width: 100,
+      height: 100,
+    );
   }
 
   // load any custom details
@@ -153,14 +146,14 @@ class _GameScreenState extends State<GameScreen> {
     if (await File("$_path/$HOME_TEAM_LOGO").exists() == true) {
       _homeLogoFile = await _getHomeTeamlogoFile;
     } else {
-      _homeLogoFile = null;
+      _homeLogoFile = new File('temphome');
     }
 
     // away team logo
     if (await File("$_path/$AWAY_TEAM_LOGO").exists() == true) {
       _awayLogoFile = await _getAwayTeamlogoFile;
     } else {
-      _awayLogoFile = null;
+      _awayLogoFile = new File('tempaway');
     }
 
     // are we asking for extra goal info (time and players on ice)?
@@ -246,8 +239,12 @@ class _GameScreenState extends State<GameScreen> {
   void _gameSummary() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
-    Summary s = new Summary(_homeShotsMap, _awayShotsMap, _goals,
-        prefs.getString("home_team_name"), prefs.getString("away_team_name"));
+    Summary s = new Summary(
+        _homeShotsMap,
+        _awayShotsMap,
+        _goals,
+        (prefs.getString(HOME_TEAM_NAME) ?? "Team 1"),
+        (prefs.getString(AWAY_TEAM_NAME) ?? "Team 2"));
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -358,15 +355,15 @@ class _GameScreenState extends State<GameScreen> {
       if ((who == enumTeamType.home) & (what == SHOTS)) {
         _homeShots = restrictNumber(direction, _homeShots);
         if (direction == UP) {
-          _homeShotsMap[_period] = _homeShotsMap[_period] + 1;
+          _homeShotsMap[_period] = _homeShotsMap[_period]! + 1;
         } else {
-          _homeShotsMap[_period] = _homeShotsMap[_period] - 1;
+          _homeShotsMap[_period] = _homeShotsMap[_period]! - 1;
         }
       } else if ((who == enumTeamType.home) & (what == GOALS)) {
         _homeGoals = restrictNumber(direction, _homeGoals);
         if (_homeShots < _homeGoals) {
           _homeShots = _homeGoals;
-          _homeShotsMap[_period] = _homeShotsMap[_period] + 1;
+          _homeShotsMap[_period] = _homeShotsMap[_period]! + 1;
         }
         // add or remove goal from the list
         if (direction == UP) {
@@ -385,15 +382,15 @@ class _GameScreenState extends State<GameScreen> {
       } else if ((who == enumTeamType.away) & (what == SHOTS)) {
         _awayShots = restrictNumber(direction, _awayShots);
         if (direction == UP) {
-          _awayShotsMap[_period] = _awayShotsMap[_period] + 1;
+          _awayShotsMap[_period] = _awayShotsMap[_period]! + 1;
         } else {
-          _awayShotsMap[_period] = _awayShotsMap[_period] - 1;
+          _awayShotsMap[_period] = _awayShotsMap[_period]! - 1;
         }
       } else {
         _awayGoals = restrictNumber(direction, _awayGoals);
         if (_awayShots < _awayGoals) {
           _awayShots = _awayGoals;
-          _awayShotsMap[_period] = _awayShotsMap[_period] + 1;
+          _awayShotsMap[_period] = _awayShotsMap[_period]! + 1;
         }
         // add a new goal to the list
         Goal g = new Goal(null, who, null, _period);
@@ -406,16 +403,19 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _changeDate() async {
-    final DateTime picked = await showDatePicker(
+    final DateTime picked;
+    showDatePicker(
       context: context,
       initialDate: _gameDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-    );
-    if (picked != null && picked != _gameDate)
-      setState(() {
-        _gameDate = picked;
-      });
+      firstDate: DateTime(2024),
+      lastDate: DateTime.now(),
+    ).then((picked) {
+      if ((picked != null) && (picked != _gameDate)) {
+        setState(() {
+          _gameDate = picked;
+        });
+      }
+    });
   }
 
   // override the init function to see if there's a stored team name

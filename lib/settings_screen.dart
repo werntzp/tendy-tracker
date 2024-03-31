@@ -9,7 +9,7 @@ import "shared.dart";
 
 // main class
 class SettingsScreen extends StatefulWidget {
-  SettingsScreen({Key key}) : super(key: key);
+  SettingsScreen({Key? key}) : super(key: key);
 
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
@@ -18,12 +18,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final homeTeamController = TextEditingController();
   final awayTeamController = TextEditingController();
-  File _homeLogoFile;
-  File _awayLogoFile;
-  File _origHomeLogoFile;
-  File _origAwayLogoFile;
+  File _defaultLogoFile = new File(DEFAULT_LOGO);
+  File? _homeLogoFile = new File(DEFAULT_LOGO);
+  File? _awayLogoFile = new File(DEFAULT_LOGO);
+  File? _origHomeLogoFile = new File(DEFAULT_LOGO);
+  File? _origAwayLogoFile = new File(DEFAULT_LOGO);
   String _path = "";
-  Directory _directory;
+  Directory _directory = new Directory("/");
   bool _isSwitched = false;
   String _homeTeamName = "Team 1";
   String _awayTeamName = "Team 2";
@@ -68,8 +69,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     setState(() {
       // custom team names (if set)
-      _homeTeamName = (prefs.getString("home_team_name") ?? "Team 1");
-      _awayTeamName = (prefs.getString("away_team_name") ?? "Team 2");
+      _homeTeamName = (prefs.getString(HOME_TEAM_NAME) ?? "Team 1");
+      _awayTeamName = (prefs.getString(AWAY_TEAM_NAME) ?? "Team 2");
       // if asking for extra info, set boolean flag
       if (extra == "yes") {
         _isSwitched = true;
@@ -84,8 +85,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     Text tempHomeTeamName = Text(homeTeamController.text);
     Text tempAwayTeamName = Text(awayTeamController.text);
-    String homeName = tempHomeTeamName.data;
-    String awayName = tempAwayTeamName.data;
+    String? homeName = tempHomeTeamName.data;
+    String? awayName = tempAwayTeamName.data;
     String extra = "";
 
     if (_isSwitched) {
@@ -99,13 +100,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (homeName == "") {
       homeName = _homeTeamName;
     }
-    prefs.setString("home_team_name", homeName);
+    prefs.setString(HOME_TEAM_NAME, homeName != null ? homeName : "Team 1");
 
     // custom away team name
     if (awayName == "") {
       awayName = _awayTeamName;
     }
-    prefs.setString("away_team_name", awayName);
+    prefs.setString(AWAY_TEAM_NAME, awayName != null ? awayName : "Team 2");
 
     // custom home team logo
     if ((_homeLogoFile != null) && (_homeLogoFile != _origHomeLogoFile)) {
@@ -116,7 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         print("error caught trying to delete file: $e");
       }
       try {
-        await _homeLogoFile.copy("$_path/$HOME_TEAM_LOGO");
+        await _homeLogoFile?.copy("$_path/$HOME_TEAM_LOGO");
       } on Exception catch (e) {
         // do nothing; probably no file to delete
         print("error caught trying to copy file: $e");
@@ -132,7 +133,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         print("error caught trying to delete file: $e");
       }
       try {
-        await _awayLogoFile.copy("$_path/$AWAY_TEAM_LOGO");
+        await _awayLogoFile?.copy("$_path/$AWAY_TEAM_LOGO");
       } on Exception catch (e) {
         // do nothing; probably no file to delete
         print("error caught trying to copy file: $e");
@@ -145,22 +146,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // home team image logo picker
   Future _pickHomeImage() async {
-    var image = await ImagePicker.pickImage(source: ImageSource.gallery);
+    var image = await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
-        _homeLogoFile = image;
+        _homeLogoFile = File(image.path);
       });
     }
   }
 
   // home team image logo picker
   Future _pickAwayImage() async {
-    var image = await ImagePicker.pickImage(source: ImageSource.gallery);
+    var image = await ImagePicker().pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       setState(() {
-        _awayLogoFile = image;
+        _awayLogoFile = File(image.path);
       });
     }
   }
@@ -191,40 +192,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  File determineLogoFileToUse(enumTeamType team) {
+    if (team == enumTeamType.home) {
+      return _homeLogoFile ?? _defaultLogoFile;
+    } else {
+      return _awayLogoFile ?? _defaultLogoFile;
+    }
+  }
+
   // render image for home team
   Widget _homeTeamLogo() {
     imageCache.clear();
-    if (_homeLogoFile == null) {
-      return Image.asset(
-        "$DEFAULT_LOGO",
-        width: 100,
-        height: 100,
-      );
-    } else {
-      return Image.file(
-        _homeLogoFile,
-        width: 100,
-        height: 100,
-      );
-    }
+    return Image.file(
+      determineLogoFileToUse(enumTeamType.home),
+      width: 100,
+      height: 100,
+    );
   }
 
   // render image for away team
   Widget _awayTeamLogo() {
     imageCache.clear();
-    if (_awayLogoFile == null) {
-      return Image.asset(
-        "$DEFAULT_LOGO",
-        width: 100,
-        height: 100,
-      );
-    } else {
-      return Image.file(
-        _awayLogoFile,
-        width: 100,
-        height: 100,
-      );
-    }
+    return Image.file(
+      determineLogoFileToUse(enumTeamType.away),
+      width: 100,
+      height: 100,
+    );
   }
 
   // override the init function to see if there's anything custom stored

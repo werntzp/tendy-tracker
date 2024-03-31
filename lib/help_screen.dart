@@ -1,20 +1,11 @@
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
-import "dart:convert";
-import "shared.dart";
 import 'package:webview_flutter/webview_flutter.dart';
+import "shared.dart";
 
 class HelpScreen extends StatelessWidget {
-  HelpScreen({Key key}) : super(key: key);
-  WebViewController _controller;
+  HelpScreen({Key? key}) : super(key: key);
 
-  // load up a local html page with help information
-  _loadHtmlFromAssets() async {
-    String fileText = await rootBundle.loadString('assets/help.html');
-    _controller.loadUrl(Uri.dataFromString(fileText,
-            mimeType: 'text/html', encoding: Encoding.getByName('utf-8'))
-        .toString());
-  }
+  final _controller = WebViewController()..loadFlutterAsset('assets/help.html');
 
   // main build function
   @override
@@ -41,12 +32,8 @@ class HelpScreen extends StatelessWidget {
                         fontSize: 25)),
               ),
               Container(
-                child: WebView(
-                  initialUrl: "about:blank",
-                  onWebViewCreated: (WebViewController webViewController) {
-                    _controller = webViewController;
-                    _loadHtmlFromAssets();
-                  },
+                child: WebViewWidget(
+                  controller: _controller,
                 ),
                 height: 400.0,
               ),

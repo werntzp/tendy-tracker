@@ -8,15 +8,19 @@ const int GOALS = 0;
 const int SHOTS = 1;
 const int UP = 0;
 const int DOWN = 1;
+const String HOME_TEAM_NAME = "home_team_name";
+const String AWAY_TEAM_NAME = "away_team_name";
 
 enum enumTeamType { home, away }
+
 enum enumGoalType { es, pp, en, sh, ps }
+
 enum enumPeriodType { one, two, three, ot, so }
 
 class Goal {
-  final enumGoalType type;
+  final enumGoalType? type;
   final enumTeamType team;
-  final DateTime time;
+  final DateTime? time;
   final enumPeriodType period;
 
   Goal(this.type, this.team, this.time, this.period);

@@ -1,21 +1,20 @@
-import 'package:flutter/cupertino.dart';
 import "package:flutter/material.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart";
 import "shared.dart";
 
 class GoalsScreen extends StatefulWidget {
-  GoalsScreen({Key key}) : super(key: key);
+  GoalsScreen({Key? key}) : super(key: key);
 
   @override
   _GoalsScreenState createState() => _GoalsScreenState();
 }
 
 class _GoalsScreenState extends State<GoalsScreen> {
-  enumGoalType _goalType = enumGoalType.es;
-  enumPeriodType _goalPeriod = enumPeriodType.one;
+  enumGoalType? _goalType = enumGoalType.es;
+  enumPeriodType? _goalPeriod = enumPeriodType.one;
   String _displayPeriod = "";
-  DateTime _time;
+  DateTime _time = DateTime.now();
 
   // load up any details or state info
   void _load() async {
@@ -97,7 +96,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumPeriodType>(
               value: enumPeriodType.one,
               groupValue: _goalPeriod,
-              onChanged: (enumPeriodType value) {
+              onChanged: (enumPeriodType? value) {
                 setState(() {
                   _goalPeriod = value;
                 });
@@ -111,7 +110,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumPeriodType>(
               value: enumPeriodType.two,
               groupValue: _goalPeriod,
-              onChanged: (enumPeriodType value) {
+              onChanged: (enumPeriodType? value) {
                 setState(() {
                   _goalPeriod = value;
                 });
@@ -125,7 +124,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumPeriodType>(
               value: enumPeriodType.three,
               groupValue: _goalPeriod,
-              onChanged: (enumPeriodType value) {
+              onChanged: (enumPeriodType? value) {
                 setState(() {
                   _goalPeriod = value;
                 });
@@ -139,7 +138,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumPeriodType>(
               value: enumPeriodType.ot,
               groupValue: _goalPeriod,
-              onChanged: (enumPeriodType value) {
+              onChanged: (enumPeriodType? value) {
                 setState(() {
                   _goalPeriod = value;
                 });
@@ -153,7 +152,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumPeriodType>(
               value: enumPeriodType.so,
               groupValue: _goalPeriod,
-              onChanged: (enumPeriodType value) {
+              onChanged: (enumPeriodType? value) {
                 setState(() {
                   _goalPeriod = value;
                 });
@@ -178,7 +177,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumGoalType>(
               value: enumGoalType.es,
               groupValue: _goalType,
-              onChanged: (enumGoalType value) {
+              onChanged: (enumGoalType? value) {
                 setState(() {
                   _goalType = value;
                 });
@@ -192,7 +191,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumGoalType>(
               value: enumGoalType.pp,
               groupValue: _goalType,
-              onChanged: (enumGoalType value) {
+              onChanged: (enumGoalType? value) {
                 setState(() {
                   _goalType = value;
                 });
@@ -206,7 +205,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumGoalType>(
               value: enumGoalType.sh,
               groupValue: _goalType,
-              onChanged: (enumGoalType value) {
+              onChanged: (enumGoalType? value) {
                 setState(() {
                   _goalType = value;
                 });
@@ -220,7 +219,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumGoalType>(
               value: enumGoalType.en,
               groupValue: _goalType,
-              onChanged: (enumGoalType value) {
+              onChanged: (enumGoalType? value) {
                 setState(() {
                   _goalType = value;
                 });
@@ -234,7 +233,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             Radio<enumGoalType>(
               value: enumGoalType.ps,
               groupValue: _goalType,
-              onChanged: (enumGoalType value) {
+              onChanged: (enumGoalType? value) {
                 setState(() {
                   _goalType = value;
                 });

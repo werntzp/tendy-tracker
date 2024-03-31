@@ -4,14 +4,14 @@ import "shared.dart";
 
 class SummaryScreen extends StatelessWidget {
   final Summary summary;
-  SummaryScreen({Key key, this.summary}) : super(key: key);
+  SummaryScreen({Key? key, required this.summary}) : super(key: key);
 
   // return table with goals, or just text if nothing this period
   Widget _renderGoals(p) {
     List<Goal> goals = summary.goals;
     int counter = 0;
     List<TableRow> rows = [];
-    DateTime dt;
+    DateTime? dt;
     String time = "";
     String team = "";
     String type = "";
@@ -53,12 +53,9 @@ class SummaryScreen extends StatelessWidget {
         } else {
           type = "";
         }
-        if (goals[i].time == null) {
-          time = "";
-        } else {
-          dt = goals[i].time;
-          time = " " + fmt.format(dt);
-        }
+        // ternary operator to decide how to return time of goal
+        dt = goals[i].time;
+        dt == null ? time = "" : time = " " + fmt.format(dt);
 
         rows.add(TableRow(children: [
           Text(time),
