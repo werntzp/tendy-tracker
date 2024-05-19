@@ -252,10 +252,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Goal Details"),
-        backgroundColor: Colors.black,
-      ),
+      appBar: null,
       body: SingleChildScrollView(
         child: Container(
           margin: const EdgeInsets.only(left: 20.0, right: 20.0),
@@ -292,15 +289,32 @@ class _GoalsScreenState extends State<GoalsScreen> {
               Padding(
                 padding: const EdgeInsets.all(25.0),
               ),
-              Center(
-                child: FloatingActionButton(
-                    heroTag: "fab9",
-                    onPressed: _save,
-                    backgroundColor: Colors.black,
-                    tooltip: "Add Goal",
-                    mini: true,
-                    child: Icon(Icons.add)),
-              ),
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    FloatingActionButton(
+                        heroTag: "fab9",
+                        onPressed: _save,
+                        backgroundColor: Colors.black,
+                        tooltip: "Add Goal",
+                        mini: true,
+                        child: Icon(
+                          Icons.add,
+                          color: Colors.white,
+                        )),
+                    FloatingActionButton(
+                        heroTag: "fab1",
+                        onPressed: () {
+                          Navigator.pop(context, null);
+                        },
+                        backgroundColor: Colors.black,
+                        tooltip: "Cancel",
+                        mini: true,
+                        child: Icon(
+                          Icons.cancel,
+                          color: Colors.white,
+                        ))
+                  ])
             ],
           ),
         ),

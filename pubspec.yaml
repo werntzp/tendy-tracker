@@ -54,6 +54,7 @@ flutter:
   assets:
     - images/opp_logo.png
     - images/sds_logo.png
+    - images/xg_rink_zones.png
     - assets/help.html
 
   # An image asset can refer to one or more resolution-specific "variants", see

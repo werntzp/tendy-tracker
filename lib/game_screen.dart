@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import 'package:tendytracker/summary_screen.dart';
+import 'package:tendytracker/shots_screen.dart';
 import "settings_screen.dart";
 import "goals_screen.dart";
 import "help_screen.dart";
@@ -30,12 +31,16 @@ class _GameScreenState extends State<GameScreen> {
   String _awayTeamName = "Team 2";
   String _displayPeriod = "1";
   String _path = "";
-  Directory _directory = new Directory('/');
-  File _defaultLogoFile = new File(DEFAULT_LOGO);
-  File? _homeLogoFile = new File(DEFAULT_LOGO);
-  File? _awayLogoFile = new File(DEFAULT_LOGO);
+  Image _defaultLogoImage =
+      new Image(image: AssetImage(DEFAULT_LOGO), height: 100, width: 100);
+  Directory _directory = new Directory("/");
+  File? _homeLogoFile = null;
+  File? _awayLogoFile = null;
   List<Goal> _goals = <Goal>[];
-  bool _isSwitched = false;
+  bool? _calcHomeGoaliexG = false;
+  bool? _calcAwayGoaliexG = false;
+  bool? _getHomeGoalieExtra = false;
+  bool? _getAwayGoalieExtra = false;
   DateTime _gameDate = DateTime.now();
   Map<enumPeriodType, int> _homeShotsMap = {
     enumPeriodType.one: 0,
@@ -51,6 +56,49 @@ class _GameScreenState extends State<GameScreen> {
     enumPeriodType.ot: 0,
     enumPeriodType.so: 0
   };
+  Map<enumShotLocation, int> _homeShotLocationMap = {
+    enumShotLocation.low: 0,
+    enumShotLocation.medium: 0,
+    enumShotLocation.high: 0
+  };
+  Map<enumShotLocation, int> _awayShotLocationMap = {
+    enumShotLocation.low: 0,
+    enumShotLocation.medium: 0,
+    enumShotLocation.high: 0
+  };
+  enumShotLocation _lastHomeShot = enumShotLocation.low;
+  enumShotLocation _lastAwayShot = enumShotLocation.low;
+  String _homexGRange = "";
+  String _awayxGRange = "";
+  String _homexGLabel = "";
+  String _awayxGLabel = "";
+
+  String _buildxGRange(enumTeamType team) {
+    int low = 0;
+    int medium = 0;
+    int high = 0;
+    double lowxg = 0.0;
+    double highxg = 0.0;
+    String value = "";
+
+    if (team == enumTeamType.away) {
+      low = _awayShotLocationMap[enumShotLocation.low] ?? 0;
+      medium = _awayShotLocationMap[enumShotLocation.medium] ?? 0;
+      high = _awayShotLocationMap[enumShotLocation.high] ?? 0;
+    } else {
+      low = _homeShotLocationMap[enumShotLocation.low] ?? 0;
+      medium = _homeShotLocationMap[enumShotLocation.medium] ?? 0;
+      high = _homeShotLocationMap[enumShotLocation.high] ?? 0;
+    }
+
+    // old: .01-.05, .06-.12, .13-2
+    // maybe? .01-.09, .1-.19, .2-.3
+    lowxg = (low * 0.01) + (medium * 0.08) + (high * .2);
+    highxg = (low * 0.06) + (medium * 0.16) + (high * .3);
+    // value = lowxg.toStringAsFixed(1) + " - " + highxg.toStringAsFixed(1);
+    value = ((lowxg + highxg) / 2).toStringAsFixed(1);
+    return value;
+  }
 
   // don't let goals or shots go above 99 or below 0
   int restrictNumber(direction, counter) {
@@ -83,6 +131,8 @@ class _GameScreenState extends State<GameScreen> {
       _period = enumPeriodType.one;
       _displayPeriod = "1";
       _goals.clear();
+      _homexGRange = "";
+      _awayxGRange = "";
       // reset the maps
       _homeShotsMap[enumPeriodType.one] = 0;
       _homeShotsMap[enumPeriodType.two] = 0;
@@ -94,6 +144,12 @@ class _GameScreenState extends State<GameScreen> {
       _awayShotsMap[enumPeriodType.three] = 0;
       _awayShotsMap[enumPeriodType.ot] = 0;
       _awayShotsMap[enumPeriodType.so] = 0;
+      _homeShotLocationMap[enumShotLocation.low] = 0;
+      _homeShotLocationMap[enumShotLocation.medium] = 0;
+      _homeShotLocationMap[enumShotLocation.high] = 0;
+      _awayShotLocationMap[enumShotLocation.low] = 0;
+      _awayShotLocationMap[enumShotLocation.medium] = 0;
+      _awayShotLocationMap[enumShotLocation.high] = 0;
     });
   }
 
@@ -107,32 +163,42 @@ class _GameScreenState extends State<GameScreen> {
     return File("$_path/$AWAY_TEAM_LOGO");
   }
 
-  File determineLogoFileToUse(enumTeamType team) {
+  File? determineLogoFileToUse(enumTeamType team) {
     if (team == enumTeamType.home) {
-      return _homeLogoFile ?? _defaultLogoFile;
+      return _homeLogoFile;
     } else {
-      return _awayLogoFile ?? _defaultLogoFile;
+      return _awayLogoFile;
     }
   }
 
   // if no custom logo, use default one for home team
   Widget _homeTeamLogo() {
     imageCache.clear();
-    return Image.file(
-      determineLogoFileToUse(enumTeamType.home),
-      width: 100,
-      height: 100,
-    );
+    File? f = determineLogoFileToUse(enumTeamType.home);
+    if (f != null) {
+      return Image.file(
+        f,
+        width: 100,
+        height: 100,
+      );
+    } else {
+      return _defaultLogoImage;
+    }
   }
 
   // if no custom logo, use default one for away team
   Widget _awayTeamLogo() {
     imageCache.clear();
-    return Image.file(
-      determineLogoFileToUse(enumTeamType.away),
-      width: 100,
-      height: 100,
-    );
+    File? f = determineLogoFileToUse(enumTeamType.away);
+    if (f != null) {
+      return Image.file(
+        f,
+        width: 100,
+        height: 100,
+      );
+    } else {
+      return _defaultLogoImage;
+    }
   }
 
   // load any custom details
@@ -140,34 +206,42 @@ class _GameScreenState extends State<GameScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _directory = await getApplicationDocumentsDirectory();
     _path = _directory.path;
-    String extra = "no";
 
     // home team logo
-    if (await File("$_path/$HOME_TEAM_LOGO").exists() == true) {
+    if (await File("$_path/$HOME_TEAM_LOGO").exists()) {
       _homeLogoFile = await _getHomeTeamlogoFile;
     } else {
-      _homeLogoFile = new File('temphome');
+      _homeLogoFile = null;
     }
 
     // away team logo
-    if (await File("$_path/$AWAY_TEAM_LOGO").exists() == true) {
+    if (await File("$_path/$AWAY_TEAM_LOGO").exists()) {
       _awayLogoFile = await _getAwayTeamlogoFile;
     } else {
-      _awayLogoFile = new File('tempaway');
+      _awayLogoFile = null;
     }
 
     // are we asking for extra goal info (time and players on ice)?
-    extra = (prefs.getString("extra") ?? "no");
+    _getHomeGoalieExtra = (prefs.getBool("homeextra") ?? false);
+    _getAwayGoalieExtra = (prefs.getBool("awayextra") ?? false);
+
+    // are we going to track shot location
+    _calcHomeGoaliexG = (prefs.getBool("homexg") ?? false);
+    _calcAwayGoaliexG = (prefs.getBool("awayxg") ?? false);
+    _homexGLabel = "";
+    _awayxGLabel = "";
 
     setState(() {
       // custom team names (if set)
       _homeTeamName = (prefs.getString("home_team_name") ?? "Team 1");
       _awayTeamName = (prefs.getString("away_team_name") ?? "Team 2");
-      // if asking for extra info, set boolean flag
-      if (extra == "yes") {
-        _isSwitched = true;
-      } else {
-        _isSwitched = false;
+      // labels
+
+      if (_calcHomeGoaliexG!) {
+        _homexGLabel = "xG";
+      }
+      if (_calcAwayGoaliexG!) {
+        _awayxGLabel = "xG";
       }
     });
   }
@@ -250,6 +324,8 @@ class _GameScreenState extends State<GameScreen> {
       MaterialPageRoute(
           builder: (context) => SummaryScreen(
                 summary: s,
+                homeImage: _homeLogoFile!,
+                awayImage: _awayLogoFile!,
               )),
     );
   }
@@ -292,19 +368,93 @@ class _GameScreenState extends State<GameScreen> {
       tmpHomeShots = _homeShots;
     }
 
-    _homeSvg = ((tmpAwayShots - _awayGoals) / tmpAwayShots) * 100.00;
-    _homeDisplaySvg = _homeSvg.toStringAsFixed(2);
-    _awaySvg = ((tmpHomeShots - _homeGoals) / tmpHomeShots) * 100.00;
-    _awayDisplaySvg = _awaySvg.toStringAsFixed(2);
+    setState(() {
+      _homeSvg = ((tmpAwayShots - _awayGoals) / tmpAwayShots) * 100.00;
+      _homeDisplaySvg = _homeSvg.toStringAsFixed(2);
+      _awaySvg = ((tmpHomeShots - _homeGoals) / tmpHomeShots) * 100.00;
+      _awayDisplaySvg = _awaySvg.toStringAsFixed(2);
+    });
   }
 
   // function to go up or down in goals and shots
-  void _incrementHomeShots() {
-    _update(enumTeamType.home, SHOTS, UP);
+  void _incrementHomeShots() async {
+    bool b = _calcAwayGoaliexG ?? false;
+    if (b) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => ShotsScreen(team: enumTeamType.home)),
+      ) as ShotLocation;
+      try {
+        _homeShotLocationMap[result.location] =
+            _homeShotLocationMap[result.location]! + 1;
+        _update(enumTeamType.home, SHOTS, UP);
+        _lastHomeShot = result.location;
+      } catch (e) {
+        // do nothing;
+      }
+    } else {
+      _update(enumTeamType.home, SHOTS, UP);
+    }
+    if (b) {
+      setState(() {
+        _awayxGRange = _buildxGRange(enumTeamType.home);
+      });
+    }
   }
 
   void _decrementHomeShots() {
+    bool b = _calcAwayGoaliexG ?? false;
+    if (b) {
+      _homeShotLocationMap[_lastHomeShot] =
+          _homeShotLocationMap[_lastHomeShot]! - 1;
+    }
     _update(enumTeamType.home, SHOTS, DOWN);
+    if (b) {
+      setState(() {
+        _awayxGRange = _buildxGRange(enumTeamType.home);
+      });
+    }
+  }
+
+  void _incrementAwayShots() async {
+    bool b = _calcHomeGoaliexG ?? false;
+    if (b) {
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => ShotsScreen(team: enumTeamType.away)),
+      ) as ShotLocation;
+      try {
+        _awayShotLocationMap[result.location] =
+            _awayShotLocationMap[result.location]! + 1;
+        _update(enumTeamType.away, SHOTS, UP);
+        _lastAwayShot = result.location;
+      } catch (e) {
+        // do nothing;
+      }
+    } else {
+      _update(enumTeamType.away, SHOTS, UP);
+    }
+    if (b) {
+      setState(() {
+        _homexGRange = _buildxGRange(enumTeamType.away);
+      });
+    }
+  }
+
+  void _decrementAwayShots() {
+    bool b = _calcHomeGoaliexG ?? false;
+    if (b) {
+      _awayShotLocationMap[_lastAwayShot] =
+          _awayShotLocationMap[_lastAwayShot]! - 1;
+    }
+    _update(enumTeamType.away, SHOTS, DOWN);
+    if (b) {
+      setState(() {
+        _homexGRange = _buildxGRange(enumTeamType.away);
+      });
+    }
   }
 
   void _addHomeGoalSimple() {
@@ -313,14 +463,6 @@ class _GameScreenState extends State<GameScreen> {
 
   void _decrementHomeGoals() {
     _update(enumTeamType.home, GOALS, DOWN);
-  }
-
-  void _incrementAwayShots() {
-    _update(enumTeamType.away, SHOTS, UP);
-  }
-
-  void _decrementAwayShots() {
-    _update(enumTeamType.away, SHOTS, DOWN);
   }
 
   void _addAwayGoalSimple() {
@@ -333,7 +475,7 @@ class _GameScreenState extends State<GameScreen> {
 
   // decide what happens when they want to add a goal (simple or get extra info)
   void _addHomeGoal() {
-    if (_isSwitched) {
+    if (_getAwayGoalieExtra!) {
       _addHomeGoalExtra();
     } else {
       _addHomeGoalSimple();
@@ -342,7 +484,7 @@ class _GameScreenState extends State<GameScreen> {
 
   // decide what happens when they want to add a goal (simple or get extra info)
   void _addAwayGoal() {
-    if (_isSwitched) {
+    if (_getHomeGoalieExtra!) {
       _addAwayGoalExtra();
     } else {
       _addAwayGoalSimple();
@@ -365,17 +507,19 @@ class _GameScreenState extends State<GameScreen> {
           _homeShots = _homeGoals;
           _homeShotsMap[_period] = _homeShotsMap[_period]! + 1;
         }
-        // add or remove goal from the list
-        if (direction == UP) {
-          Goal g = new Goal(null, who, null, _period);
-          _goals.add(g);
-        } else {
-          // start at end of list and remove last goal that is ours
-          Iterable rev = _goals.reversed;
-          for (Goal g in rev) {
-            if (g.team == enumTeamType.home) {
-              _goals.remove(g);
-              break;
+        // add or remove goal from the list if we're tracking
+        if (_getAwayGoalieExtra!) {
+          if (direction == UP) {
+            Goal g = new Goal(null, who, null, _period);
+            _goals.add(g);
+          } else {
+            // start at end of list and remove last goal that is ours
+            Iterable rev = _goals.reversed;
+            for (Goal g in rev) {
+              if (g.team == enumTeamType.home) {
+                _goals.remove(g);
+                break;
+              }
             }
           }
         }
@@ -392,9 +536,22 @@ class _GameScreenState extends State<GameScreen> {
           _awayShots = _awayGoals;
           _awayShotsMap[_period] = _awayShotsMap[_period]! + 1;
         }
-        // add a new goal to the list
-        Goal g = new Goal(null, who, null, _period);
-        _goals.add(g);
+        // add or remove goal from the list if we're tracking
+        if (_getHomeGoalieExtra!) {
+          if (direction == UP) {
+            Goal g = new Goal(null, who, null, _period);
+            _goals.add(g);
+          } else {
+            // start at end of list and remove last goal that is ours
+            Iterable rev = _goals.reversed;
+            for (Goal g in rev) {
+              if (g.team == enumTeamType.away) {
+                _goals.remove(g);
+                break;
+              }
+            }
+          }
+        }
       }
 
       // always update the save percentage for both teams
@@ -428,10 +585,7 @@ class _GameScreenState extends State<GameScreen> {
   // main build function
   Widget build(BuildContext xcontext) {
     return new Scaffold(
-      appBar: new AppBar(
-        title: new Text(APP_TITLE),
-        backgroundColor: Colors.black,
-      ),
+      appBar: null,
       body: Center(
         child: Column(children: <Widget>[
           Padding(
@@ -545,7 +699,11 @@ class _GameScreenState extends State<GameScreen> {
                   children: <Widget>[
                     Container(
                       child: Center(
-                        child: Text("Goals", style: TextStyle(fontSize: 25)),
+                        child: Text("Goals",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 25,
+                                color: Colors.black)),
                       ),
                     ),
                   ],
@@ -596,7 +754,11 @@ class _GameScreenState extends State<GameScreen> {
                   children: <Widget>[
                     Container(
                       child: Center(
-                        child: Text("Shots", style: TextStyle(fontSize: 20)),
+                        child: Text("Shots",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 25,
+                                color: Colors.black)),
                       ),
                     ),
                   ],
@@ -656,17 +818,17 @@ class _GameScreenState extends State<GameScreen> {
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
-                              color: Colors.black54),
+                              color: Colors.black),
                         ),
                         Text(
-                          "SVG%",
+                          "SVG% $_homeDisplaySvg",
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
                               color: Colors.black54),
                         ),
                         Text(
-                          "$_homeDisplaySvg",
+                          "$_homexGLabel $_homexGRange",
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
@@ -681,17 +843,17 @@ class _GameScreenState extends State<GameScreen> {
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
-                              color: Colors.black54),
+                              color: Colors.black),
                         ),
                         Text(
-                          "SVG%",
+                          "SVG% $_awayDisplaySvg",
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
                               color: Colors.black54),
                         ),
                         Text(
-                          "$_awayDisplaySvg",
+                          "$_awayxGLabel $_awayxGRange",
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
@@ -716,28 +878,40 @@ class _GameScreenState extends State<GameScreen> {
                   backgroundColor: Colors.black,
                   tooltip: "Reset",
                   mini: true,
-                  child: Icon(Icons.delete)),
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.white,
+                  )),
               FloatingActionButton(
                   heroTag: "fab2",
                   onPressed: _gameSummary,
                   backgroundColor: Colors.black,
                   tooltip: "Game Summary",
                   mini: true,
-                  child: Icon(Icons.view_list)),
+                  child: Icon(
+                    Icons.view_list,
+                    color: Colors.white,
+                  )),
               FloatingActionButton(
                   heroTag: "fab3",
                   onPressed: _settings,
                   backgroundColor: Colors.black,
                   tooltip: "Settings",
                   mini: true,
-                  child: Icon(Icons.settings)),
+                  child: Icon(
+                    Icons.settings,
+                    color: Colors.white,
+                  )),
               FloatingActionButton(
                   heroTag: "fab4",
                   onPressed: _help,
                   backgroundColor: Colors.black,
                   tooltip: "Help",
                   mini: true,
-                  child: Icon(Icons.help)),
+                  child: Icon(
+                    Icons.help,
+                    color: Colors.white,
+                  )),
             ],
           ),
           Padding(

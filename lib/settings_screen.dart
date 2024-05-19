@@ -18,16 +18,20 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final homeTeamController = TextEditingController();
   final awayTeamController = TextEditingController();
-  File _defaultLogoFile = new File(DEFAULT_LOGO);
-  File? _homeLogoFile = new File(DEFAULT_LOGO);
-  File? _awayLogoFile = new File(DEFAULT_LOGO);
-  File? _origHomeLogoFile = new File(DEFAULT_LOGO);
-  File? _origAwayLogoFile = new File(DEFAULT_LOGO);
+  Image _defaultLogoImage =
+      new Image(image: AssetImage(DEFAULT_LOGO), height: 100, width: 100);
+  File? _homeLogoFile = null;
+  File? _awayLogoFile = null;
+  File? _origHomeLogoFile = null;
+  File? _origAwayLogoFile = null;
   String _path = "";
   Directory _directory = new Directory("/");
-  bool _isSwitched = false;
   String _homeTeamName = "Team 1";
   String _awayTeamName = "Team 2";
+  bool? _calcHomeGoaliexG = false;
+  bool? _calcAwayGoaliexG = false;
+  bool? _getHomeGoalieExtra = false;
+  bool? _getAwayGoalieExtra = false;
 
   // get a handle to the home team's logo
   Future<File> get _getHomeTeamlogoFile async {
@@ -44,7 +48,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _directory = await getApplicationDocumentsDirectory();
     _path = _directory.path;
-    String extra = "no";
 
     // home team logo
     if (await File("$_path/$HOME_TEAM_LOGO").exists() == true) {
@@ -64,19 +67,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _origAwayLogoFile = null;
     }
 
-    // are we asking for extra goal info (time and players on ice)?
-    extra = (prefs.getString("extra") ?? "no");
-
     setState(() {
       // custom team names (if set)
       _homeTeamName = (prefs.getString(HOME_TEAM_NAME) ?? "Team 1");
       _awayTeamName = (prefs.getString(AWAY_TEAM_NAME) ?? "Team 2");
-      // if asking for extra info, set boolean flag
-      if (extra == "yes") {
-        _isSwitched = true;
-      } else {
-        _isSwitched = false;
-      }
+
+      // shot locations
+      _calcHomeGoaliexG = (prefs.getBool("homexg") ?? false);
+      _calcAwayGoaliexG = (prefs.getBool("awayxg") ?? false);
+
+      // extra goal info
+      _getHomeGoalieExtra = (prefs.getBool("homeextra") ?? false);
+      _getAwayGoalieExtra = (prefs.getBool("awayextra") ?? false);
     });
   }
 
@@ -89,12 +91,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String? awayName = tempAwayTeamName.data;
     String extra = "";
 
-    if (_isSwitched) {
-      extra = "yes";
-    } else {
-      extra = "no";
-    }
-    prefs.setString("extra", extra);
+    // shot location
+    prefs.setBool("homexg", (_calcHomeGoaliexG ?? false));
+    prefs.setBool("awayxg", (_calcAwayGoaliexG ?? false));
+
+    // extra goal info
+    prefs.setBool("homeextra", (_getHomeGoalieExtra ?? false));
+    prefs.setBool("awayextra", (_getAwayGoalieExtra ?? false));
 
     // custom home team name
     if (homeName == "") {
@@ -192,32 +195,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  File determineLogoFileToUse(enumTeamType team) {
+  File? determineLogoFileToUse(enumTeamType team) {
     if (team == enumTeamType.home) {
-      return _homeLogoFile ?? _defaultLogoFile;
+      return _homeLogoFile;
     } else {
-      return _awayLogoFile ?? _defaultLogoFile;
+      return _awayLogoFile;
     }
   }
 
   // render image for home team
   Widget _homeTeamLogo() {
     imageCache.clear();
-    return Image.file(
-      determineLogoFileToUse(enumTeamType.home),
-      width: 100,
-      height: 100,
-    );
+    File? f = determineLogoFileToUse(enumTeamType.home);
+    if (f != null) {
+      return Image.file(
+        f,
+        width: 100,
+        height: 100,
+      );
+    } else {
+      return _defaultLogoImage;
+    }
   }
 
-  // render image for away team
   Widget _awayTeamLogo() {
     imageCache.clear();
-    return Image.file(
-      determineLogoFileToUse(enumTeamType.away),
-      width: 100,
-      height: 100,
-    );
+    File? f = determineLogoFileToUse(enumTeamType.away);
+    if (f != null) {
+      return Image.file(
+        f,
+        width: 100,
+        height: 100,
+      );
+    } else {
+      return _defaultLogoImage;
+    }
   }
 
   // override the init function to see if there's anything custom stored
@@ -238,10 +250,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // main build function
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Settings"),
-        backgroundColor: Colors.black,
-      ),
+      appBar: null,
       body: SingleChildScrollView(
         child: Container(
           margin: const EdgeInsets.only(left: 20.0, right: 20.0),
@@ -252,107 +261,172 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(8.0),
               ),
               Text(
-                "Home Team Name",
+                "Home Team Name & Logo",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
-              ),
-              Container(
-                height: 60.0,
-                child: TextField(
-                  maxLength: 12,
-                  controller: homeTeamController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "$_homeTeamName",
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-              ),
-              Text(
-                "Home Team Logo",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
-              ),
-              GestureDetector(
-                onTap: _pickHomeImage,
-                onLongPress: _clearHomeImage,
-                child: FittedBox(
-                  fit: BoxFit.fill,
-                  child: _homeTeamLogo(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-              ),
-              Text(
-                "Away Team Name",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
-              ),
-              Container(
-                height: 60.0,
-                child: TextField(
-                  maxLength: 12,
-                  controller: awayTeamController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: "$_awayTeamName",
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-              ),
-              Text(
-                "Team logo",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
-              ),
-              GestureDetector(
-                onTap: _pickAwayImage,
-                onLongPress: _clearAwayImage,
-                child: FittedBox(
-                  fit: BoxFit.fill,
-                  child: _awayTeamLogo(),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(5.0),
               ),
               Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text(
-                      "Extra Goal Info",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      maxLength: 12,
+                      controller: homeTeamController,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: "$_homeTeamName",
+                      ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.all(2.0),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _pickHomeImage,
+                      onLongPress: _clearHomeImage,
+                      child: SizedBox(
+                        height: 100,
+                        width: 100,
+                        child: _homeTeamLogo(),
+                      ),
                     ),
-                    Switch(
-                      value: _isSwitched,
-                      onChanged: (value) {
-                        setState(() {
-                          _isSwitched = value;
-                        });
-                      },
-                    ),
-                  ]),
-              Text(
-                "Time of goal and goal type.",
-                style: TextStyle(fontSize: 15),
+                  ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.all(12.0),
               ),
-              Center(
-                child: FloatingActionButton(
-                    heroTag: "fab8",
-                    onPressed: _save,
-                    backgroundColor: Colors.black,
-                    tooltip: "Save",
-                    mini: true,
-                    child: Icon(Icons.save)),
+              Text(
+                "Away Team Name & Logo",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
               ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: <Widget>[
+                  Expanded(
+                    child: TextField(
+                      maxLength: 12,
+                      controller: awayTeamController,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: "$_awayTeamName",
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _pickAwayImage,
+                      onLongPress: _clearAwayImage,
+                      child: SizedBox(
+                        height: 100,
+                        width: 100,
+                        child: _awayTeamLogo(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(12.0),
+              ),
+              Text(
+                "Get Extra Goal Information for",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
+              ),
+              Material(
+                child: CheckboxListTile(
+                  visualDensity: VisualDensity.compact,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  tileColor: Colors.white,
+                  title:
+                      const Text('Home goalie', style: TextStyle(fontSize: 16)),
+                  value: _getHomeGoalieExtra,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _getHomeGoalieExtra = value;
+                    });
+                  },
+                ),
+              ),
+              Material(
+                child: CheckboxListTile(
+                  visualDensity: VisualDensity.compact,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  tileColor: Colors.white,
+                  title:
+                      const Text('Away goalie', style: TextStyle(fontSize: 16)),
+                  value: _getAwayGoalieExtra,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _getAwayGoalieExtra = value;
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(2.0),
+              ),
+              Text(
+                "Calculate xG Model for",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 25),
+              ),
+              Material(
+                child: CheckboxListTile(
+                  visualDensity: VisualDensity.compact,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  tileColor: Colors.white,
+                  title:
+                      const Text('Home goalie', style: TextStyle(fontSize: 16)),
+                  value: _calcHomeGoaliexG,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _calcHomeGoaliexG = value;
+                    });
+                  },
+                ),
+              ),
+              Material(
+                child: CheckboxListTile(
+                  visualDensity: VisualDensity.compact,
+                  dense: true,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  tileColor: Colors.white,
+                  title:
+                      const Text('Away goalie', style: TextStyle(fontSize: 16)),
+                  value: _calcAwayGoaliexG,
+                  onChanged: (bool? value) {
+                    setState(() {
+                      _calcAwayGoaliexG = value;
+                    });
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+              ),
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    FloatingActionButton(
+                        heroTag: "fab8",
+                        onPressed: _save,
+                        backgroundColor: Colors.black,
+                        tooltip: "Save",
+                        mini: true,
+                        child: Icon(Icons.save, color: Colors.white)),
+                    FloatingActionButton(
+                        heroTag: "fab1",
+                        onPressed: () {
+                          Navigator.pop(context, null);
+                        },
+                        backgroundColor: Colors.black,
+                        tooltip: "Cancel",
+                        mini: true,
+                        child: Icon(
+                          Icons.cancel,
+                          color: Colors.white,
+                        ))
+                  ])
             ],
           ),
         ),

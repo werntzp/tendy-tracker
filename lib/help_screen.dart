@@ -11,10 +11,7 @@ class HelpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: new AppBar(
-          title: new Text(APP_TITLE),
-          backgroundColor: Colors.black,
-        ),
+        appBar: null,
         body: Center(
             child: Container(
           margin: const EdgeInsets.only(left: 10.0, right: 10.0),
@@ -73,7 +70,7 @@ class HelpScreen extends StatelessWidget {
                     backgroundColor: Colors.black,
                     tooltip: "Back",
                     mini: true,
-                    child: Icon(Icons.arrow_back)),
+                    child: Icon(Icons.arrow_back, color: Colors.white)),
               ),
             ],
           ),
