@@ -249,7 +249,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // main build function
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar: null,
       body: SingleChildScrollView(
         child: Container(
@@ -431,6 +432,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 }

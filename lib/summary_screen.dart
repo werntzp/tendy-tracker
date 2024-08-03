@@ -1,4 +1,3 @@
-
 import "package:flutter/material.dart";
 import "package:intl/intl.dart";
 import "shared.dart";
@@ -160,89 +159,90 @@ class SummaryScreen extends StatelessWidget {
   // main build function
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: null,
-        body: SingleChildScrollView(
-            child: Container(
-          margin: const EdgeInsets.only(left: 20.0, right: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.all(12.0),
+    return SafeArea(
+        child: Scaffold(
+            appBar: null,
+            body: SingleChildScrollView(
+                child: Container(
+              margin: const EdgeInsets.only(left: 20.0, right: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                  ),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Text(summary.homeTeam + " (H)",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 22)),
+                        Text("vs",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 20)),
+                        Text(summary.awayTeam + " (A)",
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 22)),
+                      ]),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Image.file(
+                          this.homeImage,
+                          width: 100,
+                          height: 100,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(15.0),
+                        ),
+                        Image.file(
+                          this.awayImage,
+                          width: 100,
+                          height: 100,
+                        )
+                      ]),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: <Widget>[
+                        Text(DateFormat('MM/dd').format(DateTime.now()),
+                            style: TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 22))
+                      ]),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                  ),
+                  Text(
+                    "Shots",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
+                  _renderShots(),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                  ),
+                  Text(
+                    "Goals",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                  ),
+                  _renderGoals(),
+                  Padding(
+                    padding: const EdgeInsets.all(25.0),
+                  ),
+                  Center(
+                    child: FloatingActionButton(
+                        heroTag: "fab9",
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        backgroundColor: Colors.black,
+                        tooltip: "Back",
+                        mini: true,
+                        child: Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                        )),
+                  ),
+                ],
               ),
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    Text(summary.homeTeam + " (H)",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 22)),
-                    Text("vs",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 20)),
-                    Text(summary.awayTeam + " (A)",
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 22)),
-                  ]),
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    Image.file(
-                      this.homeImage,
-                      width: 100,
-                      height: 100,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(15.0),
-                    ),
-                    Image.file(
-                      this.awayImage,
-                      width: 100,
-                      height: 100,
-                    )
-                  ]),
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: <Widget>[
-                    Text(DateFormat('MM/dd').format(DateTime.now()),
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 22))
-                  ]),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-              ),
-              Text(
-                "Shots",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-              ),
-              _renderShots(),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-              ),
-              Text(
-                "Goals",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-              ),
-              _renderGoals(),
-              Padding(
-                padding: const EdgeInsets.all(25.0),
-              ),
-              Center(
-                child: FloatingActionButton(
-                    heroTag: "fab9",
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    backgroundColor: Colors.black,
-                    tooltip: "Back",
-                    mini: true,
-                    child: Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                    )),
-              ),
-            ],
-          ),
-        )));
+            ))));
   }
 }

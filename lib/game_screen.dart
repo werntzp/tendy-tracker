@@ -584,7 +584,8 @@ class _GameScreenState extends State<GameScreen> {
 
   // main build function
   Widget build(BuildContext xcontext) {
-    return new Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar: null,
       body: Center(
         child: Column(children: <Widget>[
@@ -919,6 +920,6 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ]),
       ),
-    );
+    ));
   }
 }

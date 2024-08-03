@@ -12,7 +12,8 @@ class ShotsScreen extends StatelessWidget {
   }
 
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar: null,
       body: SingleChildScrollView(
         child: Container(
@@ -75,6 +76,6 @@ class ShotsScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }

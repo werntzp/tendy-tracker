@@ -251,7 +251,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+        child: Scaffold(
       appBar: null,
       body: SingleChildScrollView(
         child: Container(
@@ -319,6 +320,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ),
         ),
       ),
-    );
+    ));
   }
 }
