@@ -3,7 +3,9 @@ import 'package:image_picker/image_picker.dart';
 import "package:shared_preferences/shared_preferences.dart";
 import "package:path_provider/path_provider.dart";
 import "dart:io";
+import 'dart:typed_data';
 import "shared.dart";
+import 'package:flutter/services.dart';
 
 // class used to populate the listview
 
@@ -18,53 +20,54 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final homeTeamController = TextEditingController();
   final awayTeamController = TextEditingController();
-  Image _defaultLogoImage =
-      new Image(image: AssetImage(DEFAULT_LOGO), height: 100, width: 100);
-  File? _homeLogoFile = null;
-  File? _awayLogoFile = null;
-  File? _origHomeLogoFile = null;
-  File? _origAwayLogoFile = null;
   String _path = "";
   Directory _directory = new Directory("/");
   String _homeTeamName = "Team 1";
   String _awayTeamName = "Team 2";
+  String _tempTeamName = "Temp";
   bool? _calcHomeGoaliexG = false;
   bool? _calcAwayGoaliexG = false;
   bool? _getHomeGoalieExtra = false;
   bool? _getAwayGoalieExtra = false;
-
-  // get a handle to the home team's logo
-  Future<File> get _getHomeTeamlogoFile async {
-    return File("$_path/$HOME_TEAM_LOGO");
-  }
-
-  // get a handle to the away team's logo
-  Future<File> get _getAwayTeamlogoFile async {
-    return File("$_path/$AWAY_TEAM_LOGO");
-  }
+  Uint8List? _homeImageData;
+  Uint8List? _awayImageData;
+  Uint8List? _tempImageData;
+  Uint8List? _defaultImageData;
 
   // load any custom details
-  void _load() async {
+  Future<void> _load() async {
+    // this is where files will be stored for the team images
     SharedPreferences prefs = await SharedPreferences.getInstance();
     _directory = await getApplicationDocumentsDirectory();
     _path = _directory.path;
 
-    // home team logo
-    if (await File("$_path/$HOME_TEAM_LOGO").exists() == true) {
-      _homeLogoFile = await _getHomeTeamlogoFile;
-      _origHomeLogoFile = _homeLogoFile;
+    // tell flutter not to render until we're ready
+    WidgetsFlutterBinding.ensureInitialized();
+    WidgetsBinding.instance.deferFirstFrame();
+
+    // local file vars
+    File? hf = null;
+    File? af = null;
+
+    // always load up the default image
+    ByteData byteData = await rootBundle.load(DEFAULT_LOGO);
+    _defaultImageData = byteData.buffer.asUint8List();
+
+    // load the home team logo into memory from the local file
+    if (await File("$_path/$HOME_TEAM_LOGO").exists()) {
+      hf = await File("$_path/$HOME_TEAM_LOGO");
+      _homeImageData = await hf.readAsBytes();
     } else {
-      _homeLogoFile = null;
-      _origHomeLogoFile = null;
+      // use the default logo
+      _homeImageData = _defaultImageData;
     }
 
-    // away team logo
+    // now away team logo
     if (await File("$_path/$AWAY_TEAM_LOGO").exists() == true) {
-      _awayLogoFile = await _getAwayTeamlogoFile;
-      _origAwayLogoFile = _awayLogoFile;
+      af = await File("$_path/$AWAY_TEAM_LOGO");
+      _awayImageData = await af.readAsBytes();
     } else {
-      _awayLogoFile = null;
-      _origAwayLogoFile = null;
+      _awayImageData = await _defaultImageData;
     }
 
     setState(() {
@@ -80,6 +83,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _getHomeGoalieExtra = (prefs.getBool("homeextra") ?? false);
       _getAwayGoalieExtra = (prefs.getBool("awayextra") ?? false);
     });
+
+    // ready after images have been loaded
+    WidgetsBinding.instance.allowFirstFrame();
   }
 
   // save the team names and/or logos
@@ -111,124 +117,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     prefs.setString(AWAY_TEAM_NAME, awayName != null ? awayName : "Team 2");
 
-    // custom home team logo
-    if ((_homeLogoFile != null) && (_homeLogoFile != _origHomeLogoFile)) {
-      try {
-        await File("$_path/$HOME_TEAM_LOGO").delete();
-      } on Exception catch (e) {
-        // do nothing; probably no file to delete
-        print("error caught trying to delete file: $e");
-      }
-      try {
-        await _homeLogoFile?.copy("$_path/$HOME_TEAM_LOGO");
-      } on Exception catch (e) {
-        // do nothing; probably no file to delete
-        print("error caught trying to copy file: $e");
-      }
+    // persist the home team logo image to file
+    File? hf = null;
+    File? af = null;
+
+    // home team logo
+    try {
+      await File("$_path/$HOME_TEAM_LOGO").delete();
+    } on Exception catch (e) {
+      // do nothing; probably no file to delete
+      print("error deleting home team logo file: $e");
+    }
+    try {
+      hf = File("$_path/$HOME_TEAM_LOGO");
+      await hf.writeAsBytes(_homeImageData!);
+    } on Exception catch (e) {
+      // do nothing; probably no file to delete
+      print("error saving home team logo file: $e");
     }
 
-    // custom away team logo
-    if ((_awayLogoFile != null) && (_awayLogoFile != _origAwayLogoFile)) {
-      try {
-        await File("$_path/$AWAY_TEAM_LOGO").delete();
-      } on Exception catch (e) {
-        // do nothing; probably no file to delete
-        print("error caught trying to delete file: $e");
-      }
-      try {
-        await _awayLogoFile?.copy("$_path/$AWAY_TEAM_LOGO");
-      } on Exception catch (e) {
-        // do nothing; probably no file to delete
-        print("error caught trying to copy file: $e");
-      }
+    // home team logo
+    try {
+      await File("$_path/$AWAY_TEAM_LOGO").delete();
+    } on Exception catch (e) {
+      // do nothing; probably no file to delete
+      print("error deleting away team logo file: $e");
+    }
+    try {
+      af = File("$_path/$AWAY_TEAM_LOGO");
+      await af.writeAsBytes(_awayImageData!);
+    } on Exception catch (e) {
+      // do nothing; probably no file to delete
+      print("error saving away team logo file: $e");
     }
 
     // go back
     Navigator.pop(context, "saved");
   }
 
-  // home team image logo picker
-  Future _pickHomeImage() async {
-    var image = await ImagePicker().pickImage(source: ImageSource.gallery);
+  void _swap() async {
+    // grab text info
+    String swapName;
 
-    if (image != null) {
-      setState(() {
-        _homeLogoFile = File(image.path);
-      });
-    }
+    // now swap around the home and visitor names
+    setState(() {
+      // swap logos
+      imageCache.clear();
+      imageCache.clearLiveImages();
+      _tempImageData = _homeImageData;
+      _homeImageData = _awayImageData;
+      _awayImageData = _tempImageData;
+
+      // swamp text
+      swapName = _homeTeamName;
+      _homeTeamName = _awayTeamName;
+      _awayTeamName = swapName;
+    });
   }
 
   // home team image logo picker
-  Future _pickAwayImage() async {
+  Future<void> _pickHomeImage() async {
     var image = await ImagePicker().pickImage(source: ImageSource.gallery);
-
     if (image != null) {
-      setState(() {
-        _awayLogoFile = File(image.path);
-      });
+      _homeImageData = await image.readAsBytes();
     }
+    setState(() {
+      // force a re-draw
+    });
+  }
+
+  // home team image logo picker
+  Future<void> _pickAwayImage() async {
+    var image = await ImagePicker().pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      _awayImageData = await image.readAsBytes();
+    }
+    setState(() {
+      // force a re-draw
+    });
   }
 
   // swap back to default logo
   void _clearHomeImage() async {
     setState(() {
-      _homeLogoFile = null;
+      _homeImageData = _defaultImageData;
     });
     try {
       await File("$_path/$HOME_TEAM_LOGO").delete();
     } on Exception catch (e) {
       // do nothing; probably no file to delete
-      print("error caught trying to delete file: $e");
+      print("error caught trying to delete home team file: $e");
     }
   }
 
   // swap back to default logo
   void _clearAwayImage() async {
     setState(() {
-      _awayLogoFile = null;
+      _awayImageData = _defaultImageData;
     });
     try {
       await File("$_path/$AWAY_TEAM_LOGO").delete();
     } on Exception catch (e) {
       // do nothing; probably no file to delete
-      print("error caught trying to delete file: $e");
-    }
-  }
-
-  File? determineLogoFileToUse(enumTeamType team) {
-    if (team == enumTeamType.home) {
-      return _homeLogoFile;
-    } else {
-      return _awayLogoFile;
+      print("error caught trying to delete away team file: $e");
     }
   }
 
   // render image for home team
   Widget _homeTeamLogo() {
     imageCache.clear();
-    File? f = determineLogoFileToUse(enumTeamType.home);
-    if (f != null) {
-      return Image.file(
-        f,
+    // if we haven't loaded it up yet, use from the asset bundle
+    if (_defaultImageData == null) {
+      return Image.asset(
+        DEFAULT_LOGO,
         width: 100,
         height: 100,
       );
     } else {
-      return _defaultLogoImage;
+      return Image.memory(
+        _homeImageData ?? _defaultImageData!,
+        width: 100,
+        height: 100,
+      );
     }
   }
 
   Widget _awayTeamLogo() {
     imageCache.clear();
-    File? f = determineLogoFileToUse(enumTeamType.away);
-    if (f != null) {
-      return Image.file(
-        f,
+    // if we haven't loaded it up yet, use from the asset bundle
+    if (_defaultImageData == null) {
+      return Image.asset(
+        DEFAULT_LOGO,
         width: 100,
         height: 100,
       );
     } else {
-      return _defaultLogoImage;
+      return Image.memory(
+        _awayImageData ?? _defaultImageData!,
+        width: 100,
+        height: 100,
+      );
     }
   }
 
@@ -292,7 +320,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
               Padding(
-                padding: const EdgeInsets.all(12.0),
+                padding: const EdgeInsets.all(3.0),
+              ),
+              Center(
+                child: FloatingActionButton(
+                    heroTag: "fab3",
+                    onPressed: _swap,
+                    backgroundColor: Colors.black,
+                    tooltip: "Swap",
+                    mini: true,
+                    child: Icon(
+                      Icons.swap_vert,
+                      color: Colors.white,
+                    )),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(3.0),
               ),
               Text(
                 "Away Team Name & Logo",

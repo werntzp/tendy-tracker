@@ -1,0 +1,2 @@
+/home/werntzp/working/tendy_tracker/android/app/.cxx/RelWithDebInfo/i6945g2z/armeabi-v7a/CMakeFiles/edit_cache.dir
+/home/werntzp/working/tendy_tracker/android/app/.cxx/RelWithDebInfo/i6945g2z/armeabi-v7a/CMakeFiles/rebuild_cache.dir

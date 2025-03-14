@@ -630,7 +630,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.all(7.0),
           ),
           Expanded(
             child: Row(
@@ -916,7 +916,7 @@ class _GameScreenState extends State<GameScreen> {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.all(6.0),
           ),
         ]),
       ),
